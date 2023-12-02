@@ -1,17 +1,19 @@
-from pydantic import BaseModel
+from bson import ObjectId
 from datetime import datetime
-from typing import List
 
-class Comment(BaseModel):
-    username: str
-    content: str
-    timestamp: datetime = datetime.now()
+class Article:
+    def __init__(self, title, content, views=0, likes=0, comments=None, publication_date=None, description=None):
+        self.id = ObjectId()
+        self.title = title
+        self.content = content
+        self.views = views
+        self.likes = likes
+        self.comments = comments or []
+        self.publication_date = datetime.now().date()
+        self.description = description
 
-class Article(BaseModel):
-    title: str
-    content: str
-    views: int = 0
-    likes: int = 0
-    comments: List[Comment] = []
-    publication_date: datetime = datetime.now()
-    description: str = ""
+class Comment:
+    def __init__(self, username, content=None, timestamp = None):
+        self.username = username
+        self.content = content
+        self.timestamp = datetime.now()
