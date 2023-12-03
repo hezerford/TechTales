@@ -1,59 +1,63 @@
-from contextlib import asynccontextmanager
-from fastapi import APIRouter, HTTPException, Depends
-from fastapi.responses import JSONResponse
-from database import database, connect_to_mongo, close_mongo_connection
-from blog.schemas import CommentSchema, ArticleSchema
 from bson import ObjectId
-from typing import List
+from pymongo import ReturnDocument
+from blog.models import ArticleCollection, ArticleModel, UpdateArticleModel
+
+from fastapi import APIRouter, Body, HTTPException, Response
+from database import blog_collection
 
 router = APIRouter()
 
-@asynccontextmanager
-async def lifespan():
-    await connect_to_mongo()
+@router.get("/", response_description="List all articles", response_model=ArticleCollection)
+async def list_articles():
+    return ArticleCollection(articles=await blog_collection.find().to_list(10))
 
-'''
-Устарело
-@router.on_event("startup")
-async def startup_db_client():
-    await connect_to_mongo()
+@router.post("/", response_model=ArticleModel, response_description="Add new article")
+async def create_article(article: ArticleModel = Body(...)):
+    new_article = await blog_collection.insert_one(
+        article.model_dump(by_alias=True, exclude=["id"])
+    )
+    created_article = await blog_collection.find_one(
+        {"_id": new_article.inserted_id}
+    )
 
-@router.on_event("shutdown")
-async def shutdown_db_client():
-    await close_mongo_connection()
-'''
+    return created_article
 
-from fastapi import APIRouter, Depends
-from fastapi.openapi.models import Response
-from fastapi.responses import JSONResponse
-from blog.schemas import ArticleSchema, CommentSchema
-from database import create_article, get_articles, get_article, create_comment, get_comments
+@router.get("/{id}", response_description="Get a single article", response_model=ArticleModel, response_model_by_alias=False)
+async def show_article(id: str):
+    if (
+        article := await blog_collection.find_one({"_id": ObjectId(id)})
+    ) is not None:
+        return article
+    
+    raise HTTPException(status_code=404, detail=f"Article {id} not found")
 
-router = APIRouter()
+@router.patch("/{id}", response_description="Update a article", response_model=ArticleModel, response_model_by_alias=False)
+async def update_article(id: str, article: UpdateArticleModel = Body(...)):
+    article = {
+        k: v for k, v in article.model_dump(by_alias=True).items() if v is not None
+    }
 
-@router.post("/articles/", response_model=ArticleSchema)
-async def create_article_route(article: ArticleSchema):
-    article_id = await create_article(article)
-    return JSONResponse(content={"article_id": article_id}, status_code=201)
+    if len(article) >= 1:
+        update_result = await blog_collection.find_one_and_update(
+            {"_id": ObjectId(id)},
+            {"$set": article},
+            return_document=ReturnDocument.AFTER,
+        )
+        if update_result is not None:
+            return update_result
+        else:
+            raise HTTPException(status_code=404, detail=f"Article {id} not found")
+        
+    if (existing_article := await blog_collection.find_one({"_id": id})) is not None:
+        return existing_article
 
-@router.get("/articles/", response_model=ArticleSchema)
-async def get_articles_route():
-    articles = await get_articles()
-    return JSONResponse(content={"data": articles}, status_code=200)
+    return HTTPException(status_code=404, detail=f"Article {id} not found")
 
-@router.get("/articles/{article_id}/", response_model=ArticleSchema)
-async def get_article_route(article_id: str):
-    article = await get_article(article_id)
-    if article:
-        return JSONResponse(content={"data": article}, status_code=200)
-    return JSONResponse(content={"message": "Article not found"}, status_code=404)
+@router.delete("/{id}", response_description="Delete a article")
+async def delete_article(id: str):
+    delete_result = await blog_collection.delete_one({"_id": ObjectId(id)})
 
-@router.post("/articles/{article_id}/comments/", response_model=CommentSchema)
-async def create_comment_route(article_id: str, comment: CommentSchema):
-    comment_id = await create_comment(article_id, comment)
-    return JSONResponse(content={"comment_id": comment_id}, status_code=201)
-
-@router.get("/articles/{article_id}/comments/", response_model=CommentSchema)
-async def get_comments_route(article_id: str):
-    comments = await get_comments(article_id)
-    return JSONResponse(content={"data": comments}, status_code=200)
+    if delete_result.deleted_count == 1:
+        return Response(status_code=204)
+    
+    raise HTTPException(status_code=404, detail=f"Student {id} not found")
