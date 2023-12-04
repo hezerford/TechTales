@@ -10,6 +10,9 @@ class CommentModel(BaseModel):
     content: str = Field('...')
     timestamp: datetime
 
+class UpdateCommentModel(BaseModel):
+    content: Optional[str] = None
+
 class ArticleModel(BaseModel):
     id: Optional[PyObjectId] = Field(alias="_id", default=None)
     title: str = Field('...', max_length=100)
