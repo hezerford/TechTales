@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from blog.router import router as article_router
+from src.blog.router import router as article_router
 import uvicorn
 
 app = FastAPI(

@@ -1,9 +1,9 @@
 from bson import ObjectId
 from pymongo import ReturnDocument
-from blog.models import ArticleCollection, ArticleModel, CommentModel, UpdateArticleModel, UpdateCommentModel
+from src.blog.models import ArticleCollection, ArticleModel, CommentModel, UpdateArticleModel, UpdateCommentModel
 
 from fastapi import APIRouter, Body, HTTPException, Response
-from database import blog_collection
+from src.database import blog_collection
 
 router = APIRouter()
 
