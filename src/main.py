@@ -1,15 +1,27 @@
 from fastapi import FastAPI
-from src.blog.router import router as article_router
+from fastapi.staticfiles import StaticFiles
 import uvicorn
+import sys
+import os
+
+# Подключаем роутеры
+from src.articles.router import router as article_router
+from src.comments.router import router as comment_router
+from src.api.articles.router import router as api_articles_router
+from src.api.comments.router import router as api_comments_router
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 app = FastAPI(
     title="TechTales"
 )
 
-# Подключаем роутеры
-app.include_router(article_router, prefix="/articles")
+app.mount("/static", StaticFiles(directory="src/static"), name="static")
 
-# Другие роутеры и настройки могут быть добавлены здесь
+app.include_router(article_router, prefix="")
+app.include_router(comment_router, prefix="")
+app.include_router(api_articles_router, prefix="/api")
+app.include_router(api_comments_router, prefix="/api")
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
