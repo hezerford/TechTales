@@ -4,13 +4,13 @@ import uvicorn
 import sys
 import os
 
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 # Подключаем роутеры
 from src.articles.router import router as article_router
 from src.comments.router import router as comment_router
 from src.api.articles.router import router as api_articles_router
 from src.api.comments.router import router as api_comments_router
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 app = FastAPI(
     title="TechTales"

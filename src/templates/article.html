@@ -1,0 +1,36 @@
+{% extends "index.html" %}
+
+{% block content %}
+
+<div class="container mt-5">
+    <article class="blog-post">
+        <h1 class="display-2 text-center mb-4">{{ article.title }}</h1>
+        <p class="text-muted text-center">Published on {{ article.publication_date }}</p>
+        <p class="lead">{{ article.description }}</p>
+        <p>{{ article.content | safe }}</p>
+        <hr>
+
+        <div class="d-flex justify-content-between">
+            <div class="text-muted">Views: {{ article.views }}</div>
+            <div class="text-muted">Likes: {{ article.likes }}</div>
+        </div>
+
+        <hr>
+
+        <h2 class="display-5 text-center mb-3">Comments:</h2>
+        <ul class="list-unstyled">
+            {% for comment in article.comments %}
+                <li class="mb-3">
+                    <div class="d-flex align-items-center">
+                        <strong class="me-2">{{ comment.username }}</strong>
+                        <span class="text-muted">{{ comment.timestamp }}</span>
+                    </div>
+                    <p>{{ comment.content }}</p>
+                </li>
+            {% endfor %}
+        </ul>
+    </article>
+</div>
+
+
+{% endblock content %}
