@@ -8,7 +8,7 @@ class CommentModel(BaseModel):
     id: Optional[PyObjectId] = Field(alias="_id", default=None)
     username: str = Field('...', max_length=50)
     content: str = Field('...')
-    timestamp: datetime
+    timestamp: Optional[datetime] = Field(default_factory=datetime.utcnow, alias="timestamp")
 
 class UpdateCommentModel(BaseModel):
     content: Optional[str] = None

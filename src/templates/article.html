@@ -18,7 +18,20 @@
         <hr>
 
         <h2 class="display-5 text-center mb-3">Comments:</h2>
-        <ul class="list-unstyled">
+        <form method="post" action="/{{ article._id }}" class="mt-4" enctype="multipart/form-data">
+            <h3 class="mb-3 display-6">Add your comment</h3>
+            <div class="mb-3">
+                <label for="username" class="form-label">Your Name</label>
+                <input type="text" class="form-control" id="username" name="username" required>
+            </div>
+            <div class="mb-3">
+                <label for="comment" class="form-label">Comment</label>
+                <textarea class="form-control mb-5" id="comment" name="comment" rows="4" required></textarea>
+                <div class="g-recaptcha" data-sitekey="6Ld3Yi0pAAAAAKl_22hhwcEsezKre3Q_uFagyyvd"></div>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Comment</button>
+        </form>
+        <ul class="list-unstyled mt-5">
             {% for comment in article.comments %}
                 <li class="mb-3">
                     <div class="d-flex align-items-center">
