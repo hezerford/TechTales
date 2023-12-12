@@ -1,33 +1,52 @@
 {% extends "index.html" %}
 
+{% block head %}
+
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+<script>
+    function onSubmit() {
+        let token = grecaptcha.getResponse();
+        if (!token) {
+            alert('Please complete the reCAPTCHA verification.');
+            return false;
+        }
+
+        document.getElementById("g-recaptcha-response").value = token;
+        return true;
+    }
+</script>
+
+{% endblock head %}
+
 {% block content %}
 
 <div class="container mt-5">
     <article class="blog-post">
         <h1 class="display-2 text-center mb-4">{{ article.title }}</h1>
-        <p class="text-muted text-center">Published on {{ article.publication_date }}</p>
+        <p class="text-muted text-center">Published on {{ article.publication_date.strftime("%Y-%m-%d %H:%M") }}</p>
         <p class="lead">{{ article.description }}</p>
         <p>{{ article.content | safe }}</p>
         <hr>
 
-        <div class="d-flex justify-content-between">
+        <div class="d-flex flex-column">
             <div class="text-muted">Views: {{ article.views }}</div>
             <div class="text-muted">Likes: {{ article.likes }}</div>
         </div>
 
-        <hr>
+        <hr class="mb-5">
 
         <h2 class="display-5 text-center mb-3">Comments:</h2>
-        <form method="post" action="/{{ article._id }}" class="mt-4" enctype="multipart/form-data">
+        <form method="post" action="/{{ article._id }}" class="mt-4" enctype="multipart/form-data" id="commentForm" onsubmit="return onSubmit();">
             <h3 class="mb-3 display-6">Add your comment</h3>
             <div class="mb-3">
-                <label for="username" class="form-label">Your Name</label>
+                <label for="username" class="form-label fs-5">Your Name</label>
                 <input type="text" class="form-control" id="username" name="username" required>
             </div>
             <div class="mb-3">
-                <label for="comment" class="form-label">Comment</label>
+                <label for="comment" class="form-label fs-5">Comment</label>
                 <textarea class="form-control mb-5" id="comment" name="comment" rows="4" required></textarea>
                 <div class="g-recaptcha" data-sitekey="6Ld3Yi0pAAAAAKl_22hhwcEsezKre3Q_uFagyyvd"></div>
+                <input type="hidden" name="g_recaptcha_response" id="g-recaptcha-response" />
             </div>
             <button type="submit" class="btn btn-primary">Submit Comment</button>
         </form>
@@ -36,13 +55,14 @@
                 <li class="mb-3">
                     <div class="d-flex align-items-center">
                         <strong class="me-2">{{ comment.username }}</strong>
-                        <span class="text-muted">{{ comment.timestamp }}</span>
+                        <span class="text-muted">{{ comment.timestamp.strftime("%Y-%m-%d %H:%M") }}</span>
                     </div>
                     <p>{{ comment.content }}</p>
                 </li>
             {% endfor %}
         </ul>
     </article>
+    
 </div>
 
 

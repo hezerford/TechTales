@@ -1,11 +1,15 @@
 from bson import ObjectId
 from fastapi.responses import HTMLResponse
+import requests
+import httpx
 from comments.models import CommentModel
 from src.articles.models import ArticleCollection, ArticleModel
 
-from fastapi import APIRouter,  HTTPException, Request,  Form
+from fastapi import APIRouter, Depends,  HTTPException, Request,  Form
 from fastapi.templating import Jinja2Templates
 from src.database import blog_collection
+
+from decouple import config
 
 router = APIRouter(tags=["Articles"])
 
@@ -23,13 +27,32 @@ async def show_article(article_id: str, request: Request):
         return templates.TemplateResponse(name="article.html", context={"request": request, "article": article})
     raise HTTPException(status_code=404, detail="Article not found")
 
+async def verify_recaptcha(g_recaptcha_response: str):
+    recaptcha_secret_key = config("CAPTCHA_SECRET_KEY")
+    verify_url = f"https://www.google.com/recaptcha/api/siteverify"
+    params = {
+        'secret': recaptcha_secret_key,
+        'response': g_recaptcha_response,
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(verify_url, data=params)
+
+    data = response.json()
+
+    if data["success"] == True:
+        raise HTTPException(status_code=400, detail="reCAPTCHA verification failed")
+
 @router.post("/{article_id}", response_class=HTMLResponse)
 async def add_comment(
     article_id: str,
     request: Request,
+    g_recaptcha_response: str = Form(None),
     username: str = Form(...),
     comment: str = Form(...),
-):  
+):
+    await verify_recaptcha(g_recaptcha_response)
+
     comment_model = CommentModel(username=username, content=comment)
     comment_dict = comment_model.model_dump(by_alias=True)
 
