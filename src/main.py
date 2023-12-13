@@ -14,7 +14,7 @@ from src.api.articles.router import router as api_articles_router
 from src.api.comments.router import router as api_comments_router
 
 app = FastAPI(
-    title="TechTales"
+    title="TechTales",
 )
 
 app.mount("/static", StaticFiles(directory="src/static"), name="static")
