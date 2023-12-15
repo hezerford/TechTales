@@ -32,40 +32,16 @@ article_cache = TTLCache(maxsize=256, ttl=30)
 
 @router.get("/{article_id}", response_model=ArticleModel, response_description="Show an article by ID")
 async def show_article(article_id: str, request: Request, page: int = Query(1, alias="page"), redis: redis.Redis = Depends(get_redis)):
+    article_key = f"{article_id}_page_{page}"
     # Пытаемся получить кэшированную страницу
-    cached_article = article_cache.get(article_id)
+    cached_article = article_cache.get(article_key)
 
-    # Если страница есть в кэше, то выводим ее
-    if cached_article:
-        
-        comments = cached_article["comments"]
-        comments_per_page = 10  # Кол-во комментариев на странице
-        total_comments = len(comments)
-        total_pages = (total_comments + comments_per_page - 1) // comments_per_page
+    article = cached_article or await blog_collection.find_one({"_id": ObjectId(article_id)})
 
-        start_idx = (page - 1) * comments_per_page
-        end_idx = start_idx + comments_per_page
-        paginated_comments = comments[start_idx:end_idx]
-
-        return templates.TemplateResponse(
-            name="article.html", 
-            context={
-                    "request": request, 
-                    "article": cached_article,
-                    "paginated_comments": paginated_comments,
-                    "total_pages": total_pages,
-                    "current_page": page,
-                },
-            )
-
-    article = await blog_collection.find_one({"_id": ObjectId(article_id)})
-
-    # Если страница не в кэше, добавляем ее в кэш
     if article:
-
-        # Добавялем пагинацию к комментариям
+        # Добавляем пагинацию к комментариям
         comments = article["comments"]
-        comments_per_page = 10 # Кол-во комментариев на странице
+        comments_per_page = 10
         total_comments = len(comments)
         total_pages = (total_comments + comments_per_page - 1) // comments_per_page
 
@@ -74,17 +50,20 @@ async def show_article(article_id: str, request: Request, page: int = Query(1, a
         end_idx = start_idx + comments_per_page
         paginated_comments = comments[start_idx:end_idx]
 
-        article_cache[article_id] = article
+        # Если страница не в кэше, добавляем ее
+        if not cached_article:
+            article_cache[article_key] = article
+
         return templates.TemplateResponse(
             name="article.html", 
             context={
-                    "request": request, 
-                    "article": article,
-                    "paginated_comments": paginated_comments,
-                    "total_pages": total_pages,
-                    "current_page": page,
-                },
-            )
+                "request": request, 
+                "article": article,
+                "paginated_comments": paginated_comments,
+                "total_pages": total_pages,
+                "current_page": page,
+            },
+        )
 
     raise HTTPException(status_code=404, detail="Article not found")
 
@@ -103,6 +82,20 @@ async def verify_recaptcha(g_recaptcha_response: str):
 
     if data["success"] == True:
         raise HTTPException(status_code=400, detail="reCAPTCHA verification failed")
+    
+COMMENTS_PER_PAGE = 10
+
+async def update_article_cache(article_id: str, comments: list, total_comments: int, total_pages: int) -> None:
+    for page_num in range(1, total_pages + 1):
+        start_idx = (page_num - 1) * COMMENTS_PER_PAGE
+        end_idx = start_idx + COMMENTS_PER_PAGE
+        paginated_comments = comments[start_idx:end_idx]
+
+        cached_article = article_cache.get(f"{article_id}_page_{page_num}")
+        if cached_article:
+            cached_article["comments"] = paginated_comments
+            cached_article["total_comments"] = total_comments
+            cached_article["total_pages"] = total_pages
 
 @router.post("/{article_id}", response_class=HTMLResponse)
 async def add_comment(
@@ -111,6 +104,7 @@ async def add_comment(
     g_recaptcha_response: str = Form(None),
     username: str = Form(...),
     comment: str = Form(...),
+    page: int = Query(1, alias="page"),
 ):
     await verify_recaptcha(g_recaptcha_response)
 
@@ -124,5 +118,30 @@ async def add_comment(
 
     article = await blog_collection.find_one({"_id": ObjectId(article_id)})
     if article:
-        return templates.TemplateResponse(name="article.html", context={"request": request, "article": article})
+        # Получаем обновленные данные
+        comments = article.get("comments", [])
+        comments_per_page = 10
+        total_comments = len(comments)
+        total_pages = (total_comments + comments_per_page - 1) // comments_per_page
+
+        # Обновляем кэш для всех страниц
+        for page_num in range(1, total_pages + 1):
+            start_idx = (page_num - 1) * comments_per_page
+            end_idx = start_idx + comments_per_page
+            paginated_comments = comments[start_idx:end_idx]
+            
+            await update_article_cache(article_id, paginated_comments, total_comments, total_pages)
+
+        # Передаем total_pages в контекст
+        return templates.TemplateResponse(
+            name="article.html", 
+            context={
+                "request": request, 
+                "article": article,
+                "total_pages": total_pages,
+                "paginated_comments": paginated_comments,
+                "current_page": total_pages,
+            },
+        )
+
     raise HTTPException(status_code=404, detail="Article not found")
