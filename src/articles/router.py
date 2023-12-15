@@ -16,9 +16,17 @@ templates = Jinja2Templates(directory="src/templates")
 router = APIRouter(tags=["Articles"])
 
 @router.get("/", response_description="List all articles", response_model=ArticleCollection)
-async def list_articles(request: Request):
-    articles = await blog_collection.find().to_list(10)
-    return templates.TemplateResponse(name="index.html", context={"request": request, "articles": articles})
+async def list_articles(request: Request, page: int = Query(1, alias="page")):
+    articles_per_page = 10
+    skip_articles = (page - 1) * articles_per_page
+    articles = await blog_collection.find().skip(skip_articles).to_list(articles_per_page)
+    total_articles = await blog_collection.count_documents({})
+    total_pages = (total_articles + articles_per_page - 1) // articles_per_page
+    
+    return templates.TemplateResponse(
+        name="index.html",
+        context={"request": request, "articles": articles, "total_pages": total_pages, "current_page": page},
+    )
 
 article_cache = TTLCache(maxsize=256, ttl=30)
 
