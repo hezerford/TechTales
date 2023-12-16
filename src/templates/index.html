@@ -25,6 +25,10 @@
                 <img class="bi me-2" src="/static/img/site.png" alt="" width="40" height="32">
                 <span class="fs-4">TechTales</span>
             </a>
+            <form action="/search/" method="get" class="d-flex">
+                <input type="text" name="query" class="form-control me-2" placeholder="Search articles...">
+                <button type="submit" class="btn btn-outline-primary">Search</button>
+            </form>
         </header>
     </div>
     {% block content %}

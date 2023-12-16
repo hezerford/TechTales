@@ -1,4 +1,5 @@
 from cachetools import TTLCache
+import re
 import redis
 from bson import ObjectId
 from fastapi.responses import HTMLResponse
@@ -145,3 +146,23 @@ async def add_comment(
         )
 
     raise HTTPException(status_code=404, detail="Article not found")
+
+@router.get("/search/", response_description="Search articles by title")
+async def search_articles(request: Request, query: str = Query(...), page: int = Query(1, alias="page")):
+    # Размер страницы со статьями (сколько статей на одну страницу)
+    page_size = 10
+
+    offset = (page - 1) * page_size
+    
+    regex_query = {"$regex": query, "$options": "i"}
+    articles = await blog_collection.find({"title": regex_query}).skip(offset).limit(page_size).to_list(page_size)
+
+    return templates.TemplateResponse(
+        name="searched_articles.html",
+        context={
+            "request": request,
+            "articles": articles,
+            "query": query,
+            "page": page,
+        }
+    )
