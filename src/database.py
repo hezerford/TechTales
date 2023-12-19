@@ -6,3 +6,4 @@ MONGODB_URL=f"mongodb+srv://{config('MONGODB_USER')}:{config('MONGODB_PASS')}@{c
 client = AsyncIOMotorClient(MONGODB_URL)
 db = client.get_database("TechTales")
 blog_collection = db.get_collection("Blog")
+subscribers_collection = db.get_collection("Subscribers")

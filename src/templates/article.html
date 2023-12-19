@@ -36,7 +36,7 @@
         <hr class="mb-5">
 
         <h2 class="display-5 text-center mb-3">Comments:</h2>
-        <form method="post" action="/{{ article._id }}" class="mt-4" enctype="multipart/form-data" id="commentForm" onsubmit="return onSubmit();">
+        <form method="post" action="/articles/{{ article._id }}" class="mt-4" enctype="multipart/form-data" id="commentForm" onsubmit="return onSubmit();">
             <h3 class="mb-3 display-6">Add your comment</h3>
             <div class="mb-3">
                 <label for="username" class="form-label fs-5">Your Name</label>

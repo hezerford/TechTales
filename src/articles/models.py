@@ -2,7 +2,7 @@ from pydantic import BaseModel, BeforeValidator, Field
 from datetime import datetime
 from typing import Annotated, List, Optional
 
-from comments.models import CommentModel
+from src.comments.models import CommentModel
 
 PyObjectId = Annotated[str, BeforeValidator(str)]
 

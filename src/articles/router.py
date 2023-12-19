@@ -4,6 +4,7 @@ import redis
 from bson import ObjectId
 from fastapi.responses import HTMLResponse
 import httpx
+from articles.utils import verify_recaptcha
 from comments.models import CommentModel
 from src.articles.models import ArticleCollection, ArticleModel
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Form
@@ -31,7 +32,7 @@ async def list_articles(request: Request, page: int = Query(1, alias="page")):
 
 article_cache = TTLCache(maxsize=256, ttl=30)
 
-@router.get("/{article_id}", response_model=ArticleModel, response_description="Show an article by ID")
+@router.get("/articles/{article_id}", response_model=ArticleModel, response_description="Show an article by ID")
 async def show_article(article_id: str, request: Request, page: int = Query(1, alias="page"), redis: redis.Redis = Depends(get_redis)):
     article_key = f"{article_id}_page_{page}"
     # Пытаемся получить кэшированную страницу
@@ -67,22 +68,6 @@ async def show_article(article_id: str, request: Request, page: int = Query(1, a
         )
 
     raise HTTPException(status_code=404, detail="Article not found")
-
-async def verify_recaptcha(g_recaptcha_response: str):
-    recaptcha_secret_key = config("CAPTCHA_SECRET_KEY")
-    verify_url = f"https://www.google.com/recaptcha/api/siteverify"
-    params = {
-        'secret': recaptcha_secret_key,
-        'response': g_recaptcha_response,
-    }
-
-    async with httpx.AsyncClient() as client:
-        response = await client.post(verify_url, data=params)
-
-    data = response.json()
-
-    if data["success"] == True:
-        raise HTTPException(status_code=400, detail="reCAPTCHA verification failed")
     
 COMMENTS_PER_PAGE = 10
 
@@ -98,7 +83,7 @@ async def update_article_cache(article_id: str, comments: list, total_comments: 
             cached_article["total_comments"] = total_comments
             cached_article["total_pages"] = total_pages
 
-@router.post("/{article_id}", response_class=HTMLResponse)
+@router.post("/articles/{article_id}", response_class=HTMLResponse)
 async def add_comment(
     article_id: str,
     request: Request,
@@ -140,7 +125,7 @@ async def add_comment(
                 "request": request, 
                 "article": article,
                 "total_pages": total_pages,
-                "paginated_comments": paginated_comments,
+                "paginated_comments": paginated_comments,  # Используем переменную из последней итерации
                 "current_page": total_pages,
             },
         )

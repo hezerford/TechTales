@@ -42,7 +42,7 @@
                 <p>Views: {{ article.views }}</p>
                 <p class="ms-3">Likes: {{ article.likes }}</p>
             </div>
-            <a href="/{{ article._id }}" class="btn btn-primary">Read more</a>
+            <a href="/articles/{{ article._id }}" class="btn btn-primary">Read more</a>
             </blockquote>
         </article>
         {% endfor %}
@@ -61,6 +61,30 @@
         {% endif %}
     </div>
     {% endblock content %}
+    <div class="container mt-5 pt-5 border-top">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <h2 class="mb-4">Subscribe to mailing</h2>
+                <form method="post" action="/subscribe">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" placeholder="Enter your Email (example@example.com)" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary mt-3">Subscribe</button>
+                </form>
+
+                <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" id="subscriptionToast" style="display: none;">
+                    <div class="toast-header">
+                        <strong class="me-auto">TechTales</strong>
+                        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body">
+                        Thanks for subscribing to the newsletter, have a nice day!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="container">
         <footer class="d-flex flex-wrap justify-content-between align-items-center py-3 my-4 border-top">
             <div class="col-md-4 d-flex align-items-center">
@@ -78,5 +102,28 @@
         </footer>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // По успешной подписке отображаем toast
+            const subscribeForm = document.getElementById('subscribeForm');
+            const subscriptionToast = new bootstrap.Toast(document.getElementById('subscriptionToast'));
+    
+            subscribeForm.addEventListener('submit', async function (event) {
+                event.preventDefault();
+                const formData = new FormData(subscribeForm);
+    
+                try {
+                    // Отправка формы асинхронно (подписка пользователя)
+                    const response = await fetch('/subscribe', {
+                        method: 'POST',
+                        body: formData
+                    });
+    
+                    if (response.ok) {
+                        // Показываем toast при успешной подписке
+                        subscriptionToast.show();
+                        // Можно также сбросить значение поля email после успешной подписки, если нужно
+                        // document.getElementById('email').value = '';
+                    } else {
 </body>
 </html>
