@@ -1,23 +1,21 @@
 from datetime import datetime
-import logging
 from src.mailing.utils import send_email, get_latest_article
 from src.mailing.celery import celery_app
 from src.database import subscribers_collection
 
-logger = logging.getLogger(__name__)
-
-from datetime import datetime
 import logging
 from src.mailing.utils import send_email, get_latest_article
 from src.mailing.celery import celery_app
 from src.database import subscribers_collection
+from src.mailing.models import SubscriberModel
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 @celery_app.task
 async def send_subscription_notification_task(subscriber_email):
     try:
-        latest_article = await get_latest_article()  
+        latest_article = await get_latest_article()
         
         if latest_article:
             subject = f"Новая статья в блоге: {latest_article.title}"
@@ -27,11 +25,11 @@ async def send_subscription_notification_task(subscriber_email):
         logger.exception(f"Error sending subscription notification: {e}")
 
 @celery_app.task
-async def save_subscriber_task(subscriber_data):
+async def save_subscriber_task(email):
     try:
         # Сохранение подписчика в базе данных
-        subscriber_dict = dict(subscriber_data)
-        subscriber_dict['subscribed_at'] = datetime.utcnow()
-        subscribers_collection.insert_one(subscriber_dict)
+        subscriber_data = {"email": email, "subscribed_at": datetime}
+        result = subscribers_collection.insert_one(subscriber_data)
     except Exception as e:
-        print(f"Error saving subscriber: {e}")
+        logger.exception(f"Error saving subscriber: {e}")
+        raise

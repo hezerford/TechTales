@@ -25,7 +25,8 @@ async def send_email(to_email, subject, message):
     msg['To'] = to_email
 
     try:
-        with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()  # Обеспечение шифрования
             server.login(smtp_username, smtp_password)
             server.sendmail(sender_email, [to_email], msg=message)
         print(f"Email sent successfully to {to_email}")
@@ -42,18 +43,3 @@ async def get_latest_article():
         return ArticleModel(**latest_article)
     else:
         return None
-
-async def save_subscriber(subscriber):
-    subscriber_dict = dict(subscriber)
-    subscriber_dict['subscribed_at'] = datetime.utcnow()
-
-    # Отложенный импорт
-    from src.mailing.tasks import save_subscriber_task
-
-    # Запуск задачи асинхронно
-    result = await save_subscriber_task.delay(subscriber_dict)
-
-    # Ожидание завершения задачи и получение результата
-    task_result = await result.get()
-
-    return task_result

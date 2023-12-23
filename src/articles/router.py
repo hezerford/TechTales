@@ -1,36 +1,29 @@
-from cachetools import TTLCache
-import re
 import redis
 from bson import ObjectId
 from fastapi.responses import HTMLResponse
-import httpx
-from articles.utils import verify_recaptcha
-from comments.models import CommentModel
+
+from src.articles.utils import update_article_cache, verify_recaptcha, get_template_context
+from src.comments.models import CommentModel
 from src.articles.models import ArticleCollection, ArticleModel
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Form
-from fastapi.templating import Jinja2Templates
 from src.database import blog_collection
 from src.common.redis_utils import get_redis
-from decouple import config
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Form
+from fastapi.templating import Jinja2Templates
+
 
 templates = Jinja2Templates(directory="src/templates")
 
 router = APIRouter(tags=["Articles"])
 
 @router.get("/", response_description="List all articles", response_model=ArticleCollection)
-async def list_articles(request: Request, page: int = Query(1, alias="page")):
-    articles_per_page = 10
-    skip_articles = (page - 1) * articles_per_page
-    articles = await blog_collection.find().skip(skip_articles).to_list(articles_per_page)
-    total_articles = await blog_collection.count_documents({})
-    total_pages = (total_articles + articles_per_page - 1) // articles_per_page
-    
+async def list_articles(request: Request, template_context: dict = Depends(get_template_context)):
     return templates.TemplateResponse(
         name="index.html",
-        context={"request": request, "articles": articles, "total_pages": total_pages, "current_page": page},
+        context={"request": request, **template_context},
     )
 
-article_cache = TTLCache(maxsize=256, ttl=30)
+from src.articles.utils import article_cache
 
 @router.get("/articles/{article_id}", response_model=ArticleModel, response_description="Show an article by ID")
 async def show_article(article_id: str, request: Request, page: int = Query(1, alias="page"), redis: redis.Redis = Depends(get_redis)):
@@ -68,20 +61,6 @@ async def show_article(article_id: str, request: Request, page: int = Query(1, a
         )
 
     raise HTTPException(status_code=404, detail="Article not found")
-    
-COMMENTS_PER_PAGE = 10
-
-async def update_article_cache(article_id: str, comments: list, total_comments: int, total_pages: int) -> None:
-    for page_num in range(1, total_pages + 1):
-        start_idx = (page_num - 1) * COMMENTS_PER_PAGE
-        end_idx = start_idx + COMMENTS_PER_PAGE
-        paginated_comments = comments[start_idx:end_idx]
-
-        cached_article = article_cache.get(f"{article_id}_page_{page_num}")
-        if cached_article:
-            cached_article["comments"] = paginated_comments
-            cached_article["total_comments"] = total_comments
-            cached_article["total_pages"] = total_pages
 
 @router.post("/articles/{article_id}", response_class=HTMLResponse)
 async def add_comment(

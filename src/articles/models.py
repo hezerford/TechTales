@@ -20,6 +20,6 @@ class UpdateArticleModel(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     content: Optional[str] = None
-    
+
 class ArticleCollection(BaseModel):
     articles: List[ArticleModel]

@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Form, Request, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Depends, Form, Request, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from src.mailing.tasks import save_subscriber_task, send_subscription_notification_task
 
@@ -9,17 +9,13 @@ templates = Jinja2Templates(directory="src/templates")
 @router.post("/subscribe", response_class=HTMLResponse)
 async def subscribe(request: Request, email: str = Form(...)):
     try:
-        subscriber_data = {"email": email}
+        # Вызываем задачу Celery для сохранения подписчика
+        save_subscriber_task.delay(email)
 
-        # Вызов таски для сохранения подписчика в Celery
-        result = save_subscriber_task.delay(subscriber_data)
+        # Вызываем задачу Celery для отправки уведомления
+        send_subscription_notification_task.delay(email)
 
-        # Ожидание завершения задачи и получение результата
-        task_result = result.get()
-
-        # Вызов таски для отправки уведомления в Celery
-        await send_subscription_notification_task.delay(email)
-
-        return templates.TemplateResponse("index.html", {"request": request, "subscriber_email": email})
+        # Перенаправляем пользователя на главную страницу
+        return RedirectResponse("/", status_code=303)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
