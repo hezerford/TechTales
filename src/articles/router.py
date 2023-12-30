@@ -3,8 +3,7 @@ from bson import ObjectId
 from fastapi.responses import HTMLResponse
 
 from src.articles.utils import update_article_cache, verify_recaptcha, get_template_context
-from src.comments.models import CommentModel
-from src.articles.models import ArticleCollection, ArticleModel
+from src.articles.models import ArticleCollection, ArticleModel, CommentModel, UpdateCommentModel
 from src.database import blog_collection
 from src.common.redis_utils import get_redis
 

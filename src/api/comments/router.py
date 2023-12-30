@@ -1,6 +1,5 @@
 from bson import ObjectId
-from src.comments.models import CommentModel, UpdateCommentModel
-from src.articles.models import ArticleModel
+from src.articles.models import ArticleModel, CommentModel, UpdateCommentModel
 
 from fastapi import APIRouter, Body, HTTPException
 from src.database import blog_collection
