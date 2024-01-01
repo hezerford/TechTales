@@ -8,10 +8,9 @@ from fastapi_users.db import SQLAlchemyBaseUserTableUUID
 class Base(DeclarativeBase):
     pass
 
-
 class User(SQLAlchemyBaseUserTableUUID, Base):
-    username = Column(String, nullable=False),
-    email = Column(String, nullable=False),
+    username = Column(String, nullable=False)
+    email = Column(String, nullable=False)
     registered_at = Column(TIMESTAMP, default=datetime.utcnow)
     password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)

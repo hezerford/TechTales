@@ -5,7 +5,7 @@ from fastapi_users.db import  SQLAlchemyUserDatabase
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from src.auth.models import Base, User
+from .models import Base, User
 
 DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
